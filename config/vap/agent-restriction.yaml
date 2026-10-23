@@ -1,0 +1,41 @@
+# NodeRestriction for anchorvm agents: agent-<hv> may only write status.agent of
+# VMPorts whose spec.hypervisor is <hv>. RBAC cannot express "only my host's
+# objects" or "only this field", so this policy does.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: anchorvm-agent-restriction
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+    - apiGroups: ["anchorvm.io"]
+      apiVersions: ["*"]
+      operations: ["UPDATE"]
+      resources: ["vmports/status"]
+  matchConditions:
+  - name: is-agent
+    expression: "request.userInfo.username.startsWith('system:serviceaccount:anchorvm-system:agent-')"
+  validations:
+  - expression: "request.userInfo.username == 'system:serviceaccount:anchorvm-system:agent-' + object.spec.hypervisor"
+    message: "an agent may only report on VMPorts of its own hypervisor"
+    reason: Forbidden
+  - expression: >-
+      has(object.status) && has(oldObject.status) &&
+        has(object.status.phase) == has(oldObject.status.phase) && (!has(object.status.phase) || object.status.phase == oldObject.status.phase) &&
+        has(object.status.ip) == has(oldObject.status.ip) && (!has(object.status.ip) || object.status.ip == oldObject.status.ip) &&
+        has(object.status.mac) == has(oldObject.status.mac) && (!has(object.status.mac) || object.status.mac == oldObject.status.mac) &&
+        has(object.status.lsp) == has(oldObject.status.lsp) && (!has(object.status.lsp) || object.status.lsp == oldObject.status.lsp) &&
+        has(object.status.anchorPod) == has(oldObject.status.anchorPod) && (!has(object.status.anchorPod) || object.status.anchorPod == oldObject.status.anchorPod) &&
+        has(object.status.observedGeneration) == has(oldObject.status.observedGeneration) && (!has(object.status.observedGeneration) || object.status.observedGeneration == oldObject.status.observedGeneration) &&
+        has(object.status.conditions) == has(oldObject.status.conditions) && (!has(object.status.conditions) || object.status.conditions == oldObject.status.conditions)
+    message: "an agent may only change status.agent"
+    reason: Forbidden
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: anchorvm-agent-restriction
+spec:
+  policyName: anchorvm-agent-restriction
+  validationActions: [Deny]

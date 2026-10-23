@@ -1,0 +1,66 @@
+== setup
+== E1 TapOnly: VMPort -> IP/MAC/tap -> platform VM uses tap -> DHCP + ping
+PASS  E1 p1 NetworkReady/Ready
+      p1 ip=10.240.0.11 mac=8a:a6:42:df:3c:df tap=av32a01c4d977 anchor=av-p1-ab9ce849
+PASS  E1 tap exists on hypervisor
+PASS  E1 phase Ready (ovn-installed)
+PASS  E1 VM leased anchor IP 10.240.0.11
+PASS  E1 pod -> VM ping
+== E2 platform restarts / deletes its VM: VMPort and IP untouched
+PASS  E2 re-leased same IP after VM restart
+PASS  E2 ping after VM restart
+PASS  E2 VMPort still Ready after platform deleted VM
+PASS  E2 IP still reserved (same IP in status)
+== E3 HotPlug into an existing (stopped) domain, then platform starts it
+PASS  E3 p2 Ready (attached)
+PASS  E3 NIC in domain config
+PASS  E3 VM leased 10.240.0.12
+PASS  E3 pod -> VM ping
+== E4 duplicate / conflicting IPs
+PASS  E4 VMPort asking another VMPort's IP -> IPConflict
+PASS  E4 VMPort asking a pod's IP (10.240.0.3) -> IPConflict
+      p4 reason: KubeOVNAddressConflict
+== E5 security group on a live VMPort
+PASS  E5 ICMP blocked after SG added
+PASS  E5 tcp/22 allowed by SG
+PASS  E5 ICMP allowed again after SG removed
+== E6 anchor pods are protected
+PASS  E6 kubectl delete anchor denied
+PASS  E6 gate removal denied
+PASS  E6 annotation edit denied
+PASS  E6 eviction denied
+PASS  E6 anchor still there
+== E7 agent identity is restricted (NodeRestriction-style)
+PASS  E7 agent may write status.agent of own port
+PASS  E7 agent may NOT write status.ip
+PASS  E7 agent may NOT write another hypervisor's port
+PASS  E7 agent may NOT delete pods (RBAC)
+== E8 delete VMPort -> NIC unplugged, anchor + IP freed, IP reusable
+PASS  E8 tap removed from hypervisor
+PASS  E8 anchor pod gone
+PASS  E8 OVN port gone
+PASS  E8 freed IP 10.240.0.11 reused by new VMPort
+== E9 delete while agent is down -> DeletionBlocked -> force-delete; agent then removes stale tap
+PASS  E9 DeletionBlocked while agent down
+PASS  E9 anchor kept while blocked (IP not freed)
+PASS  E9 force-delete completes
+PASS  E9 tap still present right after agent restart (no hasty removal)
+PASS  E9 stale tap removed by agent within ~3 min
+== E10 same name recreated -> different anchor and tap
+PASS  E10 new anchor name
+PASS  E10 new tap name
+== E11 agent restart and controller restart change nothing
+PASS  E11 p2 Ready after agent restart
+PASS  E11 p2 tap intact
+PASS  E11 p7 Ready across controller restart
+PASS  E11 exactly one anchor for p7
+PASS  E11 p2 IP unchanged
+== E12 repair: OVN port lost (NB loss) -> repair annotation restores it with same IP
+PASS  E12 OVN port re-created
+PASS  E12 same IP after repair
+PASS  E12 p7 Ready again
+== E13 namespace deletion tears everything down in order
+PASS  E13 namespace gone
+PASS  E13 no anchorvm taps of the namespace left
+
+RESULT: 48 passed, 0 failed

@@ -1,0 +1,14 @@
+[Unit]
+Description=anchorvm agent (plugs VM NIC taps into Kube-OVN/OVN)
+After=network-online.target openvswitch-switch.service ovn-controller.service libvirtd.service
+Wants=network-online.target
+
+[Service]
+# root: needs ip tuntap, ovs-vsctl and virsh (HotPlug); never touches VMs or disks
+ExecStart=/usr/local/bin/anchorvm-agent --hypervisor=${ANCHORVM_HYPERVISOR} --kubeconfig=/etc/anchorvm/kubeconfig --mtu=${ANCHORVM_MTU}
+EnvironmentFile=/etc/anchorvm/agent.env
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

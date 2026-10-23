@@ -1,0 +1,315 @@
+<title>anchorvm VMPorts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Public+Sans:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  --ground:#F2F4F3; --panel:#FFFFFF; --ink:#16201D; --muted:#5A6863; --rule:#D5DBD8;
+  --accent:#1D5C9E; --accent-soft:#E3ECF6; --ok:#2F7D4F; --ok-soft:#E2F1E7;
+  --todo:#9A6416; --todo-soft:#F6EBD9; --bad:#A33A2C; --code:#E9EDEB;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ground:#101614; --panel:#17201D; --ink:#E4EAE7; --muted:#97A6A0; --rule:#2B3733;
+    --accent:#7FB0E6; --accent-soft:#1B2B3D; --ok:#6CC08C; --ok-soft:#173022;
+    --todo:#E0A85A; --todo-soft:#33270F; --bad:#E58A7C; --code:#1D2825;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ground:#101614; --panel:#17201D; --ink:#E4EAE7; --muted:#97A6A0; --rule:#2B3733;
+  --accent:#7FB0E6; --accent-soft:#1B2B3D; --ok:#6CC08C; --ok-soft:#173022;
+  --todo:#E0A85A; --todo-soft:#33270F; --bad:#E58A7C; --code:#1D2825;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:400 16px/1.6 var(--body);padding:0 20px;padding-block:32px 80px}
+.wrap{max-width:1120px;margin:0 auto;display:grid;grid-template-columns:200px minmax(0,1fr);gap:48px}
+nav.toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 24px);align-self:start;font-size:14px}
+nav.toc .label{font:600 13px/1 var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;gap:6px;counter-reset:t}
+nav.toc a{color:var(--muted);text-decoration:none}
+nav.toc a:hover,nav.toc a:focus-visible{color:var(--accent)}
+main{max-width:720px;min-width:0}
+header.top{border-bottom:2px solid var(--ink);padding-bottom:20px;margin-bottom:8px}
+.eyebrow{font:600 14px/1 var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+h1{font:700 52px/1 var(--display);letter-spacing:.01em;margin:10px 0 14px;text-wrap:balance}
+.lede{font-size:19px;line-height:1.5;margin:0;max-width:62ch}
+.notdo{margin-top:14px;color:var(--muted);max-width:62ch}
+section{padding-top:40px}
+h2{font:700 30px/1.1 var(--display);letter-spacing:.02em;margin:0 0 12px;text-wrap:balance;display:flex;align-items:baseline;gap:12px}
+h2 .tag{font:600 12px/1 var(--mono);color:var(--muted);letter-spacing:0;border:1px solid var(--rule);padding:4px 6px;border-radius:3px}
+h3{font:600 20px/1.2 var(--display);letter-spacing:.04em;text-transform:uppercase;margin:24px 0 8px}
+p,li{max-width:66ch}
+code,.mono{font-family:var(--mono);font-size:.86em}
+p code,li code,td code{background:var(--code);padding:1px 5px;border-radius:3px}
+pre{background:var(--code);padding:14px 16px;border-radius:4px;overflow-x:auto;font:400 13.5px/1.55 var(--mono);margin:12px 0}
+pre.mermaid{background:var(--panel);border:1px solid var(--rule);text-align:center}
+.idea{background:var(--accent-soft);border-left:3px solid var(--accent);padding:16px 20px;margin:16px 0;border-radius:0 4px 4px 0}
+.idea p{margin:6px 0}
+.table{overflow-x:auto;margin:12px 0}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th{font:600 13px/1.2 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px 10px;border-bottom:2px solid var(--ink)}
+td{padding:9px 10px;border-bottom:1px solid var(--rule);vertical-align:top}
+.pieces{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0}
+.piece{background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.piece .where{font:600 12px/1 var(--mono);color:var(--muted)}
+.piece b{font:700 20px/1.1 var(--display);letter-spacing:.03em}
+.piece span{font-size:14.5px;line-height:1.5}
+ol.rules{padding-left:22px;display:grid;gap:10px}
+.chip{display:inline-block;font:600 11.5px/1 var(--mono);padding:4px 7px;border-radius:3px;white-space:nowrap}
+.chip.ok{background:var(--ok-soft);color:var(--ok)}
+.chip.todo{background:var(--todo-soft);color:var(--todo)}
+.chip.bad{background:var(--todo-soft);color:var(--bad)}
+.status{display:grid;gap:8px;padding:0;list-style:none}
+.status li{display:grid;grid-template-columns:110px minmax(0,1fr);gap:12px;align-items:start;padding:8px 0;border-bottom:1px solid var(--rule);max-width:none}
+.results{font-variant-numeric:tabular-nums}
+.big{font:700 44px/1 var(--display);color:var(--ok)}
+footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--rule);color:var(--muted);font-size:14px}
+a{color:var(--accent)}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (max-width:860px){
+  .wrap{grid-template-columns:minmax(0,1fr)}
+  nav.toc{display:none}
+  .pieces{grid-template-columns:minmax(0,1fr)}
+  h1{font-size:40px}
+  .status li{grid-template-columns:minmax(0,1fr)}
+}
+</style>
+
+<div class="wrap">
+<nav class="toc" aria-label="Contents">
+  <div class="label">Contents</div>
+  <ol>
+    <li><a href="#idea">The idea</a></li>
+    <li><a href="#pieces">Three pieces</a></li>
+    <li><a href="#flow">The flow</a></li>
+    <li><a href="#lifecycle">Lifecycle</a></li>
+    <li><a href="#use">Using it</a></li>
+    <li><a href="#ops">Day-2 operations</a></li>
+    <li><a href="#safety">Safety rules</a></li>
+    <li><a href="#security">Security</a></li>
+    <li><a href="#failures">When things fail</a></li>
+    <li><a href="#tested">What was tested</a></li>
+    <li><a href="#status">MVP status</a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="top">
+  <div class="eyebrow">Kube-OVN · libvirt · network only</div>
+  <h1>anchorvm VMPorts</h1>
+  <p class="lede">Create a <code>VMPort</code> in Kubernetes and your libvirt VM gets a network card on a Kube-OVN subnet: the same subnet as your pods, an IP from Kube-OVN, no duplicates, and a correct cleanup when you delete it.</p>
+  <p class="notdo">anchorvm never creates, starts, stops or deletes VMs, and never touches disks or storage. Your platform keeps owning the VM. anchorvm owns only the VM's network card: IP, MAC, OVN port, DHCP, security groups and the tap device. It runs on stock, unmodified Kube-OVN v1.16.0, without KubeVirt.</p>
+</header>
+
+<section id="idea">
+  <h2>The idea</h2>
+  <p>Kube-OVN manages pods very well but knows nothing about VMs outside Kubernetes. So for every VM network card, anchorvm creates a stand-in pod that never runs. We call it the <strong>anchor pod</strong>.</p>
+  <div class="idea">
+    <p>Kube-OVN treats the anchor like any pod. It gives it an IP and MAC from its own allocator, so duplicates are impossible. It creates the OVN port with DHCP and security groups, keeps that port safe from its garbage collection, and frees the IP when the anchor is deleted.</p>
+    <p>The real VM then plugs a tap into that OVN port and asks DHCP for an address. It gets the anchor's IP. The VM is wearing the pod's network identity.</p>
+  </div>
+<pre class="mermaid">
+flowchart LR
+  subgraph K8s["Kubernetes cluster"]
+    VP["VMPort web1-nic0<br/>(you create this)"]
+    C["anchorvm-controller"]
+    A["anchor pod av-web1-nic0-1a2b3c4d<br/>never scheduled, never runs"]
+    KO["stock kube-ovn-controller"]
+    VP --> C --> A --> KO
+  end
+  KO -->|"IP, MAC, OVN port, DHCP, SG"| OVN[("OVN")]
+  subgraph HV["Hypervisor"]
+    AG["anchorvm-agent"]
+    T["tap av…<br/>iface-id = anchor's OVN port"]
+    VM["your VM<br/>(your platform owns it)"]
+    AG --> T --> VM
+  end
+  VP -. watch / report .- AG
+  OVN <-->|"binds the port · VM DHCP gets anchor IP"| T
+</pre>
+</section>
+
+<section id="pieces">
+  <h2>Three pieces</h2>
+  <div class="pieces">
+    <div class="piece"><span class="where">Kubernetes resource</span><b>VMPort</b><span>What you ask for: a NIC on subnet X for a VM on hypervisor Y. Optionally a fixed IP, MAC and security groups.</span></div>
+    <div class="piece"><span class="where">Deployment in the cluster</span><b>Controller</b><span>Creates the anchor pod, waits for Kube-OVN to allocate, writes IP, MAC and port name into the VMPort status, and deletes things in the safe order.</span></div>
+    <div class="piece"><span class="where">systemd on each hypervisor</span><b>Agent</b><span>For VMPorts of its own host only: creates the tap, plugs it into OVN, optionally hot-plugs it into your VM, and reports back.</span></div>
+  </div>
+</section>
+
+<section id="flow">
+  <h2>The flow</h2>
+<pre class="mermaid">
+sequenceDiagram
+  actor U as You / your platform
+  participant C as anchorvm-controller
+  participant K as Kube-OVN
+  participant A as anchorvm-agent
+  participant V as your VM
+  U->>C: create VMPort web1-nic0
+  C->>K: create anchor pod (gated, never scheduled)
+  K-->>C: IP 10.240.0.20, MAC, OVN port with DHCP and SG
+  C->>C: pin IP and MAC in status (NetworkReady)
+  A->>A: create tap, add to br-int with iface-id = OVN port
+  A-->>C: tap name, ovn-installed (Ready)
+  U->>V: start VM with that tap and MAC (or HotPlug does it)
+  V->>K: DHCP request, gets 10.240.0.20
+</pre>
+</section>
+
+<section id="lifecycle">
+  <h2>Lifecycle</h2>
+<pre class="mermaid">
+stateDiagram-v2
+  [*] --> Pending: VMPort created
+  Pending --> NetworkReady: Kube-OVN allocated IP, MAC, port
+  Pending --> IPConflict: requested IP already in use
+  NetworkReady --> Ready: agent plugged tap, OVN installed it
+  Ready --> Unknown: agent heartbeat stale
+  Unknown --> Ready: agent back
+  Ready --> Deleting: VMPort deleted
+  NetworkReady --> Deleting
+  IPConflict --> Deleting
+  Deleting --> [*]: NIC unplugged, then anchor deleted, then IP freed
+</pre>
+  <p>When your platform stops, starts, reboots or deletes the VM, nothing changes for the VMPort. The tap is persistent and the IP stays reserved until you delete the VMPort.</p>
+  <p>Deletion is strictly ordered. The agent unplugs the NIC and removes the tap first, then the controller deletes the anchor, then Kube-OVN frees the IP. An IP is never handed to someone else while a VM may still be using it. If the agent cannot be reached, the VMPort shows <code>DeletionBlocked</code> and waits for an admin.</p>
+</section>
+
+<section id="use">
+  <h2>Using it</h2>
+  <h3>TapOnly (default)</h3>
+  <p>anchorvm creates the tap. Your VM's libvirt XML references it.</p>
+<pre>apiVersion: anchorvm.io/v1alpha1
+kind: VMPort
+metadata: {name: web1-nic0, namespace: team-a}
+spec:
+  hypervisor: os-aio
+  network:
+    nad: shadow-lab/shadow-net   # Kube-OVN NetworkAttachmentDefinition
+    subnet: shadow-subnet
+    # ip: 10.240.0.20            # optional fixed IP
+    # securityGroups: [web]      # optional, changeable later</pre>
+<pre>$ kubectl get vmport -n team-a
+NAME        HYPERVISOR   PHASE   IP            MAC                 TAP
+web1-nic0   os-aio       Ready   10.240.0.20   3a:aa:a7:21:c0:96   av4f1c2d9e0ab</pre>
+  <p>Put this in the VM's XML, with the MAC and tap from the status:</p>
+<pre>&lt;interface type="ethernet"&gt;
+  &lt;mac address="3a:aa:a7:21:c0:96"/&gt;
+  &lt;target dev="av4f1c2d9e0ab" managed="no"/&gt;
+  &lt;model type="virtio"/&gt;
+  &lt;mtu size="1400"/&gt;
+&lt;/interface&gt;</pre>
+  <h3>HotPlug</h3>
+  <p>anchorvm plugs the NIC into an existing domain, live and persistent. On delete it detaches only that NIC. Nothing else of the domain is touched.</p>
+<pre>spec:
+  hypervisor: os-aio
+  network: {nad: shadow-lab/shadow-net, subnet: shadow-subnet}
+  attach: {mode: HotPlug, domain: web1}</pre>
+</section>
+
+<section id="ops">
+  <h2>Day-2 operations</h2>
+  <div class="table"><table>
+    <thead><tr><th>To do this</th><th>Run or edit</th></tr></thead>
+    <tbody>
+      <tr><td>Change security groups</td><td><code>spec.network.securityGroups</code> (applied live)</td></tr>
+      <tr><td>Change per-port DHCP options</td><td><code>spec.network.dhcpV4Options</code>, e.g. <code>mtu=1300</code></td></tr>
+      <tr><td>Remove a NIC</td><td><code>kubectl delete vmport …</code></td></tr>
+      <tr><td>Remove a NIC whose hypervisor is dead</td><td><code>kubectl annotate vmport … anchorvm.io/force-delete=true</code>. The agent removes the leftover tap when it comes back.</td></tr>
+      <tr><td>OVN lost the port (database restore)</td><td><code>kubectl annotate vmport … anchorvm.io/repair-network=true</code>. Kube-OVN re-creates it with the same IP and MAC.</td></tr>
+    </tbody>
+  </table></div>
+  <p>These fields cannot be changed after creation, and the API rejects edits: <code>hypervisor</code>, <code>nad</code>, <code>subnet</code>, <code>ip</code>, <code>mac</code>, <code>attach</code>.</p>
+</section>
+
+<section id="safety">
+  <h2>Safety rules</h2>
+  <ol class="rules">
+    <li><strong>Anchor pods can't be broken by accident.</strong> An admission policy denies deleting, evicting, un-gating or editing anchors for anyone except the anchorvm controller and Kube-OVN. Kube-OVN frees a pod's IP the moment the pod is marked for deletion, and a finalizer cannot stop that, so prevention is the only safe option.</li>
+    <li><strong>Unique names per instance.</strong> The anchor is <code>av-&lt;vmport&gt;-&lt;uid8&gt;</code> and the tap is <code>av</code> plus a hash of the VMPort UID. A VMPort recreated with the same name gets a new OVN port, so a leftover tap on a dead host can never take it over.</li>
+    <li><strong>No duplicate IPs.</strong> If two VMPorts ask for one IP, the older wins and the other shows <code>IPConflict</code>. If a VMPort asks for a pod's IP, Kube-OVN refuses. IPs are never reassigned automatically.</li>
+    <li><strong>Agents are fenced like kubelets.</strong> Each hypervisor has its own identity. It may only write <code>status.agent</code>, and only for VMPorts on its own host.</li>
+    <li><strong>The agent's cleanup is careful.</strong> It removes only taps it tagged itself, only after the API (not a cache) reports the VMPort gone on two passes a minute apart, and it never touches domains or disks.</li>
+    <li><strong>A stuck delete never resolves itself.</strong> Guessing could free an IP that is still in use, so it waits for a person.</li>
+    <li><strong>Kube-OVN upgrade guard.</strong> anchorvm relies on Kube-OVN behaviour that is not a documented API. New VMPorts are refused on an untested Kube-OVN version until the e2e suite has been re-run.</li>
+  </ol>
+</section>
+
+<section id="security">
+  <h2>Security</h2>
+  <div class="table"><table>
+    <thead><tr><th>Layer</th><th>What</th><th>Protects against</th></tr></thead>
+    <tbody>
+      <tr><td>Network</td><td>API port 6443 open only to the hypervisor's IP</td><td>anyone else reaching the API</td></tr>
+      <tr><td>TLS</td><td>agent verifies the cluster CA; traffic encrypted</td><td>sniffing, a fake API server</td></tr>
+      <tr><td>Identity</td><td>one ServiceAccount per hypervisor</td><td>shared credentials</td></tr>
+      <tr><td>RBAC</td><td>agent may read VMPorts, patch their status and renew its own Lease, nothing else</td><td>a compromised agent touching pods or secrets</td></tr>
+      <tr><td>Admission policy</td><td>agent may write only <code>status.agent</code>, only for its own host</td><td>one hypervisor affecting another host's ports</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="failures">
+  <h2>When things fail</h2>
+  <div class="table"><table>
+    <thead><tr><th>What fails</th><th>What happens</th></tr></thead>
+    <tbody>
+      <tr><td>Your VM crashes or is deleted</td><td>VMPort stays Ready; IP stays reserved</td></tr>
+      <tr><td>Hypervisor reboots</td><td>agent recreates the taps on start; OVN re-binds</td></tr>
+      <tr><td>Agent down</td><td>VMPorts show Unknown; traffic keeps flowing; deletes wait</td></tr>
+      <tr><td>Controller down</td><td>nothing changes; new VMPorts wait</td></tr>
+      <tr><td>kube-ovn-controller restart</td><td>IPs kept; the hypervisor's OVN chassis re-registers within a second</td></tr>
+      <tr><td>OVN database restart</td><td>ports and IPs kept (observed live)</td></tr>
+      <tr><td>Someone deletes an anchor</td><td>denied; if an admin bypasses the policy, the controller recreates it with the same IP and MAC</td></tr>
+      <tr><td>Untested Kube-OVN version</td><td>new VMPorts refused until re-verified</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="tested">
+  <h2>What was tested</h2>
+  <div id="results" class="results">
+    <p><span class="big">48 / 48</span> live checks passed on train (Kubernetes v1.33, stock Kube-OVN v1.16.0) and hypervisor os-aio (libvirt 10.0, OVN 25.03), run on 2026-10-22 with <code>test/e2e.sh</code>. The test script plays the platform: it creates throwaway CirrOS VMs that use the taps anchorvm provides.</p>
+<div class="table"><table><thead><tr><th>Group</th><th>What it proves</th><th>Checks</th></tr></thead><tbody>
+<tr><td class="mono">E1</td><td>TapOnly NIC: IP, MAC, tap in status; platform VM gets anchor IP by DHCP; pod to VM ping</td><td><span class="chip ok">5/5</span></td></tr>
+<tr><td class="mono">E2</td><td>Platform restarts and deletes its VM: VMPort stays Ready, IP stays reserved</td><td><span class="chip ok">4/4</span></td></tr>
+<tr><td class="mono">E3</td><td>HotPlug into an existing stopped domain; VM boots with the NIC, DHCP and ping</td><td><span class="chip ok">4/4</span></td></tr>
+<tr><td class="mono">E4</td><td>VMPort asking another VMPort's IP, and a pod's IP: both IPConflict</td><td><span class="chip ok">2/2</span></td></tr>
+<tr><td class="mono">E5</td><td>Security group added live: ICMP blocked, tcp/22 allowed; removed: ICMP back</td><td><span class="chip ok">3/3</span></td></tr>
+<tr><td class="mono">E6</td><td>Deleting, un-gating, editing and evicting an anchor pod: all denied</td><td><span class="chip ok">5/5</span></td></tr>
+<tr><td class="mono">E7</td><td>Agent identity: may write its own status.agent; denied status.ip, other hosts, pod delete</td><td><span class="chip ok">4/4</span></td></tr>
+<tr><td class="mono">E8</td><td>Delete VMPort: tap, anchor and OVN port gone; freed IP reused</td><td><span class="chip ok">4/4</span></td></tr>
+<tr><td class="mono">E9</td><td>Delete with agent down: DeletionBlocked, IP held; force-delete; stale tap removed later, not hastily</td><td><span class="chip ok">5/5</span></td></tr>
+<tr><td class="mono">E10</td><td>Same name recreated: new anchor and new tap</td><td><span class="chip ok">2/2</span></td></tr>
+<tr><td class="mono">E11</td><td>Agent restart and controller restart mid-create: nothing lost, one anchor, IP unchanged</td><td><span class="chip ok">5/5</span></td></tr>
+<tr><td class="mono">E12</td><td>OVN port deleted from NB: repair annotation restores it with the same IP and MAC</td><td><span class="chip ok">3/3</span></td></tr>
+<tr><td class="mono">E13</td><td>Namespace deletion tears everything down in order</td><td><span class="chip ok">2/2</span></td></tr>
+</tbody></table></div>
+<p>Also observed live: 19 unit tests (controller and agent) pass; the anchor model kept every VM reachable (0 lost pings in about 500 samples) through two kube-ovn-controller restarts, an ovn-central restart and a 30-second GC interval run by other tests on the same cluster.</p>
+<p>The first run had 4 failures. Three were a bug in the test script (it treated a correct denial as a failure) and one was a test that never force-deleted a VMPort whose hypervisor has no agent, which anchorvm correctly refused to delete on its own. Both were fixed in the test; no product change was needed.</p>
+  </div>
+</section>
+
+<section id="status">
+  <h2>MVP status</h2>
+  <ul class="status">
+    <li><span class="chip ok">done</span><span>VMPort API with immutability rules, controller (create, adopt, pin, recreate, IP-conflict index, ordered delete, force-delete, repair, SG and DHCP sync, Kube-OVN version gate), agent (tap and OVS port, HotPlug, reboot recovery, careful cleanup, heartbeat), three admission policies, per-hypervisor identity, unit tests, live e2e suite.</span></li>
+    <li><span class="chip todo">yet to do</span><span>Chassis blip: every kube-ovn-controller restart drops the hypervisor's OVN chassis for under a second. Planned fix: an opt-in virtual Node per hypervisor, which stock Kube-OVN keeps. Needs live testing first.</span></li>
+    <li><span class="chip todo">yet to do</span><span>Live migration of a VM between hypervisors.</span></li>
+    <li><span class="chip todo">yet to do</span><span>Credential rotation for agents (today a long-lived ServiceAccount token).</span></li>
+    <li><span class="chip todo">yet to do</span><span>Metrics beyond controller-runtime defaults, and alerts.</span></li>
+    <li><span class="chip todo">yet to do</span><span>The firewall rule is hand-added and does not survive a re-render of the host-firewall role.</span></li>
+    <li><span class="chip todo">yet to do</span><span>Startup canary self-test of Kube-OVN behaviour (today a version allowlist only).</span></li>
+    <li><span class="chip todo">yet to do</span><span>Scale test with hundreds of VMPorts; multi-NIC convenience.</span></li>
+  </ul>
+</section>
+
+<footer>anchorvm v0.1 · tested on Kube-OVN v1.16.0, OVN 25.03, Kubernetes v1.33, libvirt 10.0 · source <span class="mono">~/anchorvm</span></footer>
+</main>
+</div>

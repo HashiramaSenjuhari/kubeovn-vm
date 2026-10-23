@@ -1,0 +1,76 @@
+# Anchor pods hold a VM NIC's IP. Kube-OVN frees that IP as soon as the pod gets a
+# deletionTimestamp (a finalizer cannot stop it), so deletion must be prevented, not
+# delayed. Only the anchorvm controller (and Kube-OVN, which writes its allocation
+# annotations) may change or delete anchors. Delete the VMPort instead.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: anchorvm-anchor-guard
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+    - apiGroups: [""]
+      apiVersions: ["v1"]
+      operations: ["UPDATE", "DELETE"]
+      resources: ["pods"]
+  matchConditions:
+  - name: is-anchor
+    expression: "has(oldObject.metadata.labels) && 'anchorvm.io/anchor' in oldObject.metadata.labels"
+  - name: not-trusted-actor
+    expression: >-
+      !(request.userInfo.username in [
+        'system:serviceaccount:anchorvm-system:anchorvm-controller',
+        'system:serviceaccount:kube-system:ovn'])
+  validations:
+  - expression: "request.operation != 'DELETE'"
+    message: "this pod is an anchorvm anchor holding a VM NIC's IP; delete its VMPort instead"
+    reason: Forbidden
+  - expression: >-
+      request.operation != 'UPDATE' || (
+        object.spec == oldObject.spec &&
+        object.metadata.labels == oldObject.metadata.labels &&
+        object.metadata.annotations == oldObject.metadata.annotations &&
+        (has(object.metadata.ownerReferences) == has(oldObject.metadata.ownerReferences)) &&
+        (!has(object.metadata.ownerReferences) || object.metadata.ownerReferences == oldObject.metadata.ownerReferences))
+    message: "anchorvm anchor pods are managed by anchorvm; edit the VMPort instead"
+    reason: Forbidden
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: anchorvm-anchor-guard
+spec:
+  policyName: anchorvm-anchor-guard
+  validationActions: [Deny]
+---
+# The eviction API deletes pods without passing pod DELETE admission. Eviction
+# requests only carry the pod name, so anchors are recognised by their reserved
+# name pattern av-<vmport>-<8 hex>.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: anchorvm-anchor-eviction-guard
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+    - apiGroups: [""]
+      apiVersions: ["v1"]
+      operations: ["CREATE"]
+      resources: ["pods/eviction"]
+  matchConditions:
+  - name: is-anchor-name
+    expression: "request.name.matches('^av-[a-z0-9]([-a-z0-9]*[a-z0-9])?-[0-9a-f]{8}$')"
+  validations:
+  - expression: "false"
+    message: "anchorvm anchor pods cannot be evicted; delete the VMPort instead"
+    reason: Forbidden
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: anchorvm-anchor-eviction-guard
+spec:
+  policyName: anchorvm-anchor-eviction-guard
+  validationActions: [Deny]

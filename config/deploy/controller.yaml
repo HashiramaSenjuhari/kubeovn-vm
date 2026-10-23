@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: anchorvm-system
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: anchorvm-controller, namespace: anchorvm-system}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: {name: anchorvm-controller}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: anchorvm-controller}
+subjects: [{kind: ServiceAccount, name: anchorvm-controller, namespace: anchorvm-system}]
+---
+# leader election
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: anchorvm-leader-election, namespace: anchorvm-system}
+rules:
+- apiGroups: [coordination.k8s.io]
+  resources: [leases]
+  verbs: [get, list, watch, create, update, patch]
+- apiGroups: [""]
+  resources: [events]
+  verbs: [create, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: anchorvm-leader-election, namespace: anchorvm-system}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: anchorvm-leader-election}
+subjects: [{kind: ServiceAccount, name: anchorvm-controller, namespace: anchorvm-system}]
+---
+# what every hypervisor agent may do (plus its own Lease, see hack/add-hypervisor.sh);
+# the anchorvm-agent-restriction policy narrows status writes to its own hypervisor
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: anchorvm-agent}
+rules:
+- apiGroups: [anchorvm.io]
+  resources: [vmports]
+  verbs: [get, list, watch]
+- apiGroups: [anchorvm.io]
+  resources: [vmports/status]
+  verbs: [patch, update]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: anchorvm-controller, namespace: anchorvm-system}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: anchorvm-controller}}
+  template:
+    metadata:
+      labels: {app: anchorvm-controller}
+    spec:
+      serviceAccountName: anchorvm-controller
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+      - name: controller
+        image: anchorvm-controller:0.1.1
+        imagePullPolicy: IfNotPresent
+        args: ["--system-namespace=anchorvm-system"]
+        ports: [{name: metrics, containerPort: 8080}, {name: health, containerPort: 8081}]
+        livenessProbe: {httpGet: {path: /healthz, port: 8081}, initialDelaySeconds: 10}
+        readinessProbe: {httpGet: {path: /readyz, port: 8081}}
+        resources:
+          requests: {cpu: 50m, memory: 64Mi}
+          limits: {memory: 256Mi}
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities: {drop: [ALL]}
